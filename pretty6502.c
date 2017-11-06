@@ -37,8 +37,8 @@ void request_space(FILE *output, int *current, int new, int force)
 	*/
 	while (1) {
 		if (tabs == 0) {
-			fputc(' ', output);
-			(*current)++;
+			fprintf(output, "%*s", new - *current, "");
+			*current = new;
 		} else {
 			fputc('\t', output);
 			*current = (*current + tabs) / tabs * tabs;
@@ -61,12 +61,8 @@ int main(int argc, char *argv[])
 	int align_comment;
 	FILE *input;
 	FILE *output;
-	char line[4096];
-	int input_lines;
 	int allocation;
 	char *data;
-	int current_line;
-	int next_position;
 	char *p;
 	char *p1;
 	char *p2;
@@ -198,42 +194,52 @@ int main(int argc, char *argv[])
 	/*
 	** Open input file, measure it and read it into buffer
 	*/
-	input = fopen(argv[c], "r");
+	input = fopen(argv[c], "rb");
 	if (input == NULL) {
 		fprintf(stderr, "Unable to open input file: %s\n", argv[c]);
 		exit(1);
 	}
 	fprintf(stderr, "Processing %s...\n", argv[c]);
-	input_lines = 0;
-	allocation = 0;
-	while (fgets(line, sizeof(line) - 1, input)) {
-		allocation += strlen(line) + 1;
-		input_lines++;
-	}
-	fclose(input);
-	data = malloc(allocation);
+	fseek(input, 0, SEEK_END);
+	allocation = ftell(input);
+	data = malloc(allocation + sizeof(char));
 	if (data == NULL) {
 		fprintf(stderr, "Unable to allocate memory\n");
+		fclose(input);
 		exit(1);
 	}
-	input = fopen(argv[c], "r");
-	if (input == NULL) {
-		fprintf(stderr, "Unable to open input file: %s\n", argv[c]);
+	fseek(input, 0, SEEK_SET);
+	if (fread(data, sizeof(char), allocation, input) != allocation) {
+		fprintf(stderr, "Something went wrong reading the input file\n");
+		fclose(input);
+		free(data);
 		exit(1);
-	}
-	current_line = 0;
-	next_position = 0;
-	while (fgets(line, sizeof(line) - 1, input)) {
-		if (current_line >= input_lines || next_position + strlen(line) + 1 > allocation) {
-			fprintf(stderr, "Buuurp! the source file grew!\n");
-			fclose(input);
-			exit(1);
-		}
-		strcpy(data + next_position, line);
-		next_position += strlen(line) + 1;
-		current_line++;
 	}
 	fclose(input);
+
+	/*
+	** Ease processing of input file
+	*/
+	request = 0;
+	p1 = data;
+	p2 = data;
+	while (p1 < data + allocation) {
+		if (*p1 == '\r') {	/* Ignore \r characters */
+			p1++;
+			continue;
+		}
+		if (*p1 == '\n') {
+			p1++;
+			*p2++ = '\0';	/* Break line */
+			request = 1;
+			continue;
+		}
+		*p2++ = *p1++;
+		request = 0;
+	}
+	if (request == 0) 
+		*p2++ = '\0';	/* Force line break */
+	allocation = p2 - data;
 
 	/*
 	** Now generate output file
@@ -245,7 +251,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	p = data;
-	for (input_lines = 0; input_lines < current_line; input_lines++) {
+	while (p < data + allocation) {
 		current_column = 0;
 		p1 = p;
 		if (*p1 && !isspace(*p1) && *p1 != ';') {	/* Label */
@@ -276,7 +282,7 @@ int main(int argc, char *argv[])
 				request = start_operand;
 				request_space(output, &current_column, request, 1);
 				p2 = p1;
-				while (*p2 && *p2 != ';' && *p2 != '\r' && *p2 != '\n') {
+				while (*p2 && *p2 != ';') {
 					if (*p2 == '"') {
 						p2++;
 						while (*p2 && *p2 != '"')
@@ -311,7 +317,7 @@ int main(int argc, char *argv[])
 				request = start_mnemonic;
 			request_space(output, &current_column, request, 0);
 			p2 = p1;
-			while (*p2 && *p2 != '\r' && *p2 != '\n')
+			while (*p2)
 				p2++;
 			while (p2 > p1 && isspace(*(p2 - 1)))
 				p2--;
