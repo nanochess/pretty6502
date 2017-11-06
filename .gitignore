@@ -1,2 +1,7 @@
 *.DS_Store
 *.o
+Aa*
+aa*
+dasm
+pretty6502
+pretty6502.exe
