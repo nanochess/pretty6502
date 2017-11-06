@@ -13,6 +13,8 @@ Arguments:
               label: mnemonic operand comment
     -s1       Code in three columns
               label: mnemonic+operand comment
+    -p0       Processor unknown.
+    -p1       Processor 6502 + DASM syntax (default)
     -m8       Start of mnemonic column (default)
     -o16      Start of operand column (default)
     -c32      Start of comment column (default)
@@ -21,6 +23,9 @@ Arguments:
     -a0       Align comments to nearest column
     -a1       Comments at line start are aligned
               to mnemonic (default)
+    -n4       Nesting spacing (can be any number
+              of spaces or multiple of tab size)
+    -l        Put labels in its own line
 
 Assumes all your labels are at start of line and there is space
 before mnemonic.
