@@ -6,7 +6,10 @@
 ** © Copyright 2017 Oscar Toledo G.
 **
 ** Creation date: Nov/03/2017.
-** Revision date: Nov/06/2017. Processor selection. Indents nested IF/ENDIF. Tries to preserve vertical structure of comments. Allows label in its own line.
+** Revision date: Nov/06/2017. Processor selection. Indents nested IF/ENDIF.
+**                             Tries to preserve vertical structure of comments.
+**                             Allows label in its own line. Allows to change case
+**                             of mnemonics and directives.
 */
 
 #include <stdio.h>
@@ -174,12 +177,15 @@ int main(int argc, char *argv[])
 	char *p;
 	char *p1;
 	char *p2;
+	char *p3;
 	int current_column;
 	int request;
 	int current_level;
 	int prev_comment_original_location;
 	int prev_comment_final_location;
 	int flags;
+	int mnemonics_case;
+	int directives_case;
 
 	/*
 	** Show usage if less than 3 arguments (program name counts as one)
@@ -212,6 +218,10 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "    -n4       Nesting spacing (can be any number\n");
 		fprintf(stderr, "              of spaces or multiple of tab size)\n");
 		fprintf(stderr, "    -l        Puts labels in its own line\n");
+		fprintf(stderr, "    -dl       Change directives to lowercase\n");
+		fprintf(stderr, "    -du       Change directives to uppercase\n");
+		fprintf(stderr, "    -ml       Change mnemonics to lowercase\n");
+		fprintf(stderr, "    -mu       Change mnemonics to uppercase\n");
 		fprintf(stderr, "\n");
 		fprintf(stderr, "Assumes all your labels are at start of line and there is space\n");
 		fprintf(stderr, "before mnemonic.\n");
@@ -233,6 +243,8 @@ int main(int argc, char *argv[])
 	align_comment = 1;
 	nesting_space = 4;
 	labels_own_line = 0;
+	mnemonics_case = 0;
+	directives_case = 0;
 
 	/*
 	** Process arguments
@@ -243,7 +255,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "Bad argument\n");
 			exit(1);
 		}
-		switch (argv[c][1]) {
+		switch (tolower(argv[c][1])) {
 			case 's':	/* Style */
 				style = atoi(&argv[c][2]);
 				if (style != 0 && style != 1) {
@@ -259,7 +271,13 @@ int main(int argc, char *argv[])
 				}
 				break;
 			case 'm':	/* Mnemonic start */
-				start_mnemonic = atoi(&argv[c][2]);
+				if (tolower(argv[c][2]) == 'l') {
+					mnemonics_case = 1;
+				} else if (tolower(argv[c][2]) == 'u') {
+					mnemonics_case = 2;
+				} else { 	
+					start_mnemonic = atoi(&argv[c][2]);
+				}
 				break;
 			case 'o':	/* Operand start */
 				start_operand = atoi(&argv[c][2]);
@@ -282,6 +300,15 @@ int main(int argc, char *argv[])
 				break;
 			case 'l':	/* Labels in own line */
 				labels_own_line = 1;
+				break;
+			case 'd':	/* Directives */
+				if (tolower(argv[c][2]) == 'l') {
+					directives_case = 1;
+				} else if (tolower(argv[c][2]) == 'u') {
+					directives_case = 2;
+				} else { 	
+					fprintf(stderr, "Unknown argument: %c%c\n", argv[c][1], argv[c][2]);
+				}
 				break;
 			default:	/* Other */
 				fprintf(stderr, "Unknown argument: %c\n", argv[c][1]);
@@ -414,7 +441,7 @@ int main(int argc, char *argv[])
 			if (processor == 1) {
 				c = check_opcode(p1, p2);
 				if (c == 0) {
-					request = start_mnemonic;
+					request = start_mnemonic;			
 				} else if (c < 0) {
 					request = start_mnemonic;
 				} else {
@@ -426,6 +453,36 @@ int main(int argc, char *argv[])
 				}
 			} else {
 				request = start_mnemonic;
+				c = 0;
+			}
+			if (c <= 0) {
+				if (mnemonics_case == 1) {
+					p3 = p1;
+					while (p3 < p2) {
+						*p3 = tolower(*p3);
+						p3++;
+					}
+				} else if (mnemonics_case == 2) {
+					p3 = p1;
+					while (p3 < p2) {
+						*p3 = toupper(*p3);
+						p3++;
+					}
+				}
+			} else {
+				if (directives_case == 1) {
+					p3 = p1;
+					while (p3 < p2) {
+						*p3 = tolower(*p3);
+						p3++;
+					}
+				} else if (directives_case == 2) {
+					p3 = p1;
+					while (p3 < p2) {
+						*p3 = toupper(*p3);
+						p3++;
+					}
+				}
 			}
 				
 			/*

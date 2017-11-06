@@ -26,6 +26,10 @@ Arguments:
     -n4       Nesting spacing (can be any number
               of spaces or multiple of tab size)
     -l        Put labels in its own line
+    -dl       Change directives to lowercase
+    -du       Change directives to uppercase
+    -ml       Change mnemonics to lowercase
+    -mu       Change mnemonics to uppercase
 
 Assumes all your labels are at start of line and there is space
 before mnemonic.
