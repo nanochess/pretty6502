@@ -10,6 +10,8 @@
 **                             Tries to preserve vertical structure of comments.
 **                             Allows label in its own line. Allows to change case
 **                             of mnemonics and directives.
+** Revision date: Apr/16/2018. Added support for Z80 + tniASM. Solved bug in
+**                             processing of apostrophe in operand.
 */
 
 #include <stdio.h>
@@ -19,6 +21,7 @@
 
 #define VERSION "v0.2"
 int tabs;
+int processor;
 
 /*
 ** 6502 mnemonics
@@ -34,6 +37,21 @@ char *mnemonics_6502[] = {
 	"sbx", "sec", "sed", "sei", "sha", "shs", "shx", "shy",
 	"slo", "sre", "sta", "stx", "sty", "tax", "tay", "tsx",
 	"txa", "txs", "tya", NULL,
+};
+
+/*
+** Z80 mnemonics
+*/
+char *mnemonics_z80[] = {
+    "adc",  "add",  "and",  "bit",  "call", "ccf",  "cp",   "cpd",
+    "cpdr", "cpi",  "cpir", "cpl",  "daa",  "dec",  "di",   "djnz",
+    "ei",   "ex",   "exx",  "halt", "im",   "in",   "inc",  "ind",
+    "indr", "ini",  "inir", "jp",   "jr",   "ld",   "ldd",  "lddr",
+    "ldi",  "ldir", "neg",  "nop",  "or",   "otdr", "otir", "out",
+    "outd", "outi", "pop",  "push", "res",  "ret",  "reti", "retn",
+    "rl",   "rla",  "rlc",  "rlca", "rld",  "rr",   "rra",  "rrc",
+    "rrca", "rrd",  "rst",  "sbc",  "scf",  "set",  "sla",  "sra",
+    "srl",  "sub",  "xor",  NULL,
 };
 
 #define DONT_RELOCATE_LABEL	0x01
@@ -89,6 +107,36 @@ struct {
 };
 
 /*
+** tniASM directives
+*/
+struct {
+    char *directive;
+    int flags;
+} directives_tniasm[] = {
+    "cpu",      0,
+    "db",       0,
+    "dc",       0,
+    "ds",       0,
+    "dw",       0,
+    "dephase",  0,
+    "else",		LEVEL_MINUS,
+    "endif",	LEVEL_OUT,
+    "equ",		DONT_RELOCATE_LABEL,
+    "fname",    0,
+    "forg",     0,
+    "if",		LEVEL_IN,
+    "ifdef",	LEVEL_IN,
+    "ifexist",	LEVEL_IN,
+    "incbin",   0,
+    "include",  0,
+    "org",      0,
+    "phase",    0,
+    "rb",       0,
+    "rw",       0,
+    NULL,		0,
+};
+
+/*
 ** Comparison without case
 */
 int memcmpcase(char *p1, char *p2, int size)
@@ -110,17 +158,32 @@ int check_opcode(char *p1, char *p2)
 	int c;
 	int length;
 
-	for (c = 0; directives_dasm[c].directive != NULL; c++) {
-		length = strlen(directives_dasm[c].directive);
-		if ((*p1 == '.' && length == p2 - p1 - 1 && memcmpcase(p1 + 1, directives_dasm[c].directive, p2 - p1 - 1) == 0) || (length == p2 - p1 && memcmpcase(p1, directives_dasm[c].directive, p2 - p1) == 0)) {
-			return c + 1;
-		}
-	}
-	for (c = 0; mnemonics_6502[c] != NULL; c++) {
-		length = strlen(mnemonics_6502[c]);
-		if (length == p2 - p1 && memcmpcase(p1, mnemonics_6502[c], p2 - p1) == 0)
-			return -(c + 1);
-	}
+    if (processor == 1) {
+        for (c = 0; directives_dasm[c].directive != NULL; c++) {
+            length = strlen(directives_dasm[c].directive);
+            if ((*p1 == '.' && length == p2 - p1 - 1 && memcmpcase(p1 + 1, directives_dasm[c].directive, p2 - p1 - 1) == 0) || (length == p2 - p1 && memcmpcase(p1, directives_dasm[c].directive, p2 - p1) == 0)) {
+                return c + 1;
+            }
+        }
+        for (c = 0; mnemonics_6502[c] != NULL; c++) {
+            length = strlen(mnemonics_6502[c]);
+            if (length == p2 - p1 && memcmpcase(p1, mnemonics_6502[c], p2 - p1) == 0)
+                return -(c + 1);
+        }
+    }
+    if (processor == 2) {
+        for (c = 0; directives_tniasm[c].directive != NULL; c++) {
+            length = strlen(directives_tniasm[c].directive);
+            if (length == p2 - p1 && memcmpcase(p1, directives_tniasm[c].directive, p2 - p1) == 0) {
+                return c + 1;
+            }
+        }
+        for (c = 0; mnemonics_z80[c] != NULL; c++) {
+            length = strlen(mnemonics_z80[c]);
+            if (length == p2 - p1 && memcmpcase(p1, mnemonics_z80[c], p2 - p1) == 0)
+                return -(c + 1);
+        }
+    }
 	return 0;
 }
 
@@ -163,7 +226,6 @@ int main(int argc, char *argv[])
 {
 	int c;
 	int style;
-	int processor;
 	int start_mnemonic;
 	int start_operand;
 	int start_comment;
@@ -206,7 +268,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "    -s1       Code in three columns\n");
 		fprintf(stderr, "              label: mnemonic+operand comment\n");
 		fprintf(stderr, "    -p0       Processor unknown\n");
-		fprintf(stderr, "    -p1       Processor 6502 + DASM syntax (default)\n");
+        fprintf(stderr, "    -p1       Processor 6502 + DASM syntax (default)\n");
+        fprintf(stderr, "    -p2       Processor Z80 + tniASM syntax\n");
 		fprintf(stderr, "    -m8       Start of mnemonic column (default)\n");
 		fprintf(stderr, "    -o16      Start of operand column (default)\n");
 		fprintf(stderr, "    -c32      Start of comment column (default)\n");
@@ -265,7 +328,7 @@ int main(int argc, char *argv[])
 				break;
 			case 'p':	/* Processor */
 				processor = atoi(&argv[c][2]);
-				if (processor < 0 || processor > 1) {
+				if (processor < 0 || processor > 2) {
 					fprintf(stderr, "Bad processor code: %d\n", processor);	
 					exit(1);
 				}
@@ -438,14 +501,17 @@ int main(int argc, char *argv[])
 			p2 = p1;
 			while (*p2 && !isspace(*p2) && *p2 != ';')
 				p2++;
-			if (processor == 1) {
+			if (processor != 0) {
 				c = check_opcode(p1, p2);
 				if (c == 0) {
 					request = start_mnemonic;			
 				} else if (c < 0) {
 					request = start_mnemonic;
 				} else {
-					flags = directives_dasm[c - 1].flags;
+                    if (processor == 1)
+                        flags = directives_dasm[c - 1].flags;
+                    else if (processor == 2)
+                        flags = directives_tniasm[c - 1].flags;
 					if (flags & DONT_RELOCATE_LABEL)
 						request = start_operand;
 					else
@@ -518,9 +584,11 @@ int main(int argc, char *argv[])
 						p2++;
 					} else if (*p2 == '\'') {
 						p2++;
-						while (*p2 && *p2 != '"')
-							p2++;
-						p2++;
+                        if (p2 - p1 < 6 || memcmp(p2 - 6, "AF,AF'", 6) != 0) {
+                            while (*p2 && *p2 != '\'')
+                                p2++;
+                            p2++;
+                        }
 					} else {
 						p2++;
 					}
