@@ -19,7 +19,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#define VERSION "v0.2"
+#define VERSION "v0.3"
 int tabs;
 int processor;
 
