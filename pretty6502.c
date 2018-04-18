@@ -3,7 +3,7 @@
 **
 ** by Oscar Toledo G.
 **
-** © Copyright 2017 Oscar Toledo G.
+** © Copyright 2017-2018 Oscar Toledo G.
 **
 ** Creation date: Nov/03/2017.
 ** Revision date: Nov/06/2017. Processor selection. Indents nested IF/ENDIF.
@@ -12,6 +12,8 @@
 **                             of mnemonics and directives.
 ** Revision date: Apr/16/2018. Added support for Z80 + tniASM. Solved bug in
 **                             processing of apostrophe in operand.
+** Revision date: Apr/17/2018. Added support for CP1610 + as1600 (Intellivision).
+**                             Comments now also include indentation.
 */
 
 #include <stdio.h>
@@ -19,7 +21,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#define VERSION "v0.3"
+#define VERSION "v0.4"
 int tabs;
 int processor;
 
@@ -54,18 +56,37 @@ char *mnemonics_z80[] = {
     "srl",  "sub",  "xor",  NULL,
 };
 
+/*
+** CP1610 mnemonics
+*/
+char *mnemonics_cp1610[] = {
+    "adcr", "add",  "add@", "addi", "addr", "and",  "and@", "andi",
+    "andr", "b",    "bc",   "beq",  "besc", "bext", "bge",  "bgt",
+    "ble",  "blge", "bllt", "blt",  "bmi",  "bnc",  "bneq", "bnov",
+    "bnze", "bov",  "bpl",  "busc", "bze",  "clrc", "clrr", "cmp",
+    "cmp@", "cmpi", "cmpr", "comr", "decr", "dis",  "eis",  "gswd",
+    "hlt",  "incr", "j",    "jd",   "je",   "jr",   "jsr",  "jsrd",
+    "jsre", "movr", "mvi",  "mvi@", "mvii", "mvo",  "mvo@", "mvoi",
+    "negr", "nop",  "nopp", "pshr", "pulr", "rlc",  "rrc",  "rswd",
+    "sar",  "sarc", "sdbd", "setc", "sin",  "sll",  "sllc", "slr",
+    "sub",  "sub@", "subi", "subr", "swap", "tci",  "tstr", "xor",
+    "xor@", "xori", "xorr", NULL,
+};
+
 #define DONT_RELOCATE_LABEL	0x01
 #define LEVEL_IN		0x02
 #define LEVEL_OUT		0x04
 #define LEVEL_MINUS		0x08
 
+struct directive {
+    char *directive;
+    int flags;
+};
+
 /*
 ** DASM directives
 */
-struct {
-	char *directive;
-	int flags;
-} directives_dasm[] = {
+struct directive directives_dasm[] = {
 	"=",		DONT_RELOCATE_LABEL,
 	"align",	0,
 	"byte",		0,
@@ -109,10 +130,7 @@ struct {
 /*
 ** tniASM directives
 */
-struct {
-    char *directive;
-    int flags;
-} directives_tniasm[] = {
+struct directive directives_tniasm[] = {
     "cpu",      0,
     "db",       0,
     "dc",       0,
@@ -137,6 +155,50 @@ struct {
 };
 
 /*
+** as1600 directives
+ */
+struct directive directives_as1600[] = {
+    "begin",    0,
+    "bidecle",  0,
+    "byte",     0,
+    "cfgvar",   0,
+    "cmsg",     0,
+    "dcw",      0,
+    "decle",    0,
+    "else",     LEVEL_MINUS,
+    "endi",     LEVEL_OUT,
+    "endm",     LEVEL_OUT,
+    "endp",     0,
+    "endr",     0,
+    "ends",     LEVEL_OUT,
+    "err",      0,
+    "if",       LEVEL_IN,
+    "listing",  0,
+    "macro",    LEVEL_IN,
+    "memattr",  0,
+    "org",      DONT_RELOCATE_LABEL,
+    "proc",     DONT_RELOCATE_LABEL,
+    "qequ",     DONT_RELOCATE_LABEL,
+    "qset",     DONT_RELOCATE_LABEL,
+    "repeat",   0,
+    "res",      0,
+    "reserve",  0,
+    "return",   0,
+    "rmb",      0,
+    "romw",     0,
+    "romwidth", 0,
+    "rpt",      0,
+    "set",      DONT_RELOCATE_LABEL,
+    "smsg",     0,
+    "srcfile",  0,
+    "string",   0,
+    "struct",   DONT_RELOCATE_LABEL | LEVEL_IN,
+    "wmsg",     0,
+    "word",     0,
+    NULL,       0,
+};
+
+/*
 ** Comparison without case
 */
 int memcmpcase(char *p1, char *p2, int size)
@@ -158,7 +220,7 @@ int check_opcode(char *p1, char *p2)
 	int c;
 	int length;
 
-    if (processor == 1) {
+    if (processor == 1) {   /* 6502 + DASM */
         for (c = 0; directives_dasm[c].directive != NULL; c++) {
             length = strlen(directives_dasm[c].directive);
             if ((*p1 == '.' && length == p2 - p1 - 1 && memcmpcase(p1 + 1, directives_dasm[c].directive, p2 - p1 - 1) == 0) || (length == p2 - p1 && memcmpcase(p1, directives_dasm[c].directive, p2 - p1) == 0)) {
@@ -171,7 +233,7 @@ int check_opcode(char *p1, char *p2)
                 return -(c + 1);
         }
     }
-    if (processor == 2) {
+    if (processor == 2) {   /* Z80 + tniASM */
         for (c = 0; directives_tniasm[c].directive != NULL; c++) {
             length = strlen(directives_tniasm[c].directive);
             if (length == p2 - p1 && memcmpcase(p1, directives_tniasm[c].directive, p2 - p1) == 0) {
@@ -181,6 +243,19 @@ int check_opcode(char *p1, char *p2)
         for (c = 0; mnemonics_z80[c] != NULL; c++) {
             length = strlen(mnemonics_z80[c]);
             if (length == p2 - p1 && memcmpcase(p1, mnemonics_z80[c], p2 - p1) == 0)
+                return -(c + 1);
+        }
+    }
+    if (processor == 3) {   /* CP1610 + as1600 */
+        for (c = 0; directives_as1600[c].directive != NULL; c++) {
+            length = strlen(directives_as1600[c].directive);
+            if (length == p2 - p1 && memcmpcase(p1, directives_as1600[c].directive, p2 - p1) == 0) {
+                return c + 1;
+            }
+        }
+        for (c = 0; mnemonics_cp1610[c] != NULL; c++) {
+            length = strlen(mnemonics_cp1610[c]);
+            if (length == p2 - p1 && memcmpcase(p1, mnemonics_cp1610[c], p2 - p1) == 0)
                 return -(c + 1);
         }
     }
@@ -248,6 +323,8 @@ int main(int argc, char *argv[])
 	int flags;
 	int mnemonics_case;
 	int directives_case;
+    int indent;
+    int something;
 
 	/*
 	** Show usage if less than 3 arguments (program name counts as one)
@@ -270,6 +347,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "    -p0       Processor unknown\n");
         fprintf(stderr, "    -p1       Processor 6502 + DASM syntax (default)\n");
         fprintf(stderr, "    -p2       Processor Z80 + tniASM syntax\n");
+        fprintf(stderr, "    -p3       Processor CP1610 + as1600 syntax (Intellivision(tm))\n");
 		fprintf(stderr, "    -m8       Start of mnemonic column (default)\n");
 		fprintf(stderr, "    -o16      Start of operand column (default)\n");
 		fprintf(stderr, "    -c32      Start of comment column (default)\n");
@@ -328,7 +406,7 @@ int main(int argc, char *argv[])
 				break;
 			case 'p':	/* Processor */
 				processor = atoi(&argv[c][2]);
-				if (processor < 0 || processor > 2) {
+				if (processor < 0 || processor > 3) {
 					fprintf(stderr, "Bad processor code: %d\n", processor);	
 					exit(1);
 				}
@@ -482,12 +560,14 @@ int main(int argc, char *argv[])
 	current_level = 0;
 	p = data;
 	while (p < data + allocation) {
+        something = 0;
 		current_column = 0;
 		p1 = p;
 		p2 = p1;
 		while (*p2 && !isspace(*p2) && *p2 != ';')
 			p2++;
 		if (p2 - p1) {	/* Label */
+            something = 1;
 			fwrite(p1, sizeof(char), p2 - p1, output);
 			current_column = p2 - p1;
 			p1 = p2;
@@ -496,6 +576,7 @@ int main(int argc, char *argv[])
 		}
 		while (*p1 && isspace(*p1))
 			p1++;
+        indent = current_level * nesting_space;
 		flags = 0;
 		if (*p1 && *p1 != ';') {	/* Mnemonic */
 			p2 = p1;
@@ -512,6 +593,8 @@ int main(int argc, char *argv[])
                         flags = directives_dasm[c - 1].flags;
                     else if (processor == 2)
                         flags = directives_tniasm[c - 1].flags;
+                    else if (processor == 3)
+                        flags = directives_as1600[c - 1].flags;
 					if (flags & DONT_RELOCATE_LABEL)
 						request = start_operand;
 					else
@@ -559,21 +642,27 @@ int main(int argc, char *argv[])
 				current_column = 0;
 			}
 			if (flags & LEVEL_OUT) {
-				if (current_level > 0)
+                if (current_level > 0) {
 					current_level--;
+                    indent -= nesting_space;
+                }
 			}
-			request += current_level * nesting_space;
-			if (flags & LEVEL_MINUS)
-				request -= nesting_space;
+            if (flags & LEVEL_MINUS) {
+                if (indent >= nesting_space)
+                    indent -= nesting_space;
+                else
+                    indent = 0;
+            }
+			request += indent;
 			request_space(output, &current_column, request, 1);
+            something = 1;
 			fwrite(p1, sizeof(char), p2 - p1, output);
 			current_column += p2 - p1;
 			p1 = p2;
 			while (*p1 && isspace(*p1))
 				p1++;
 			if (*p1 && *p1 != ';') {	/* Operand */
-				request = start_operand;
-				request += current_level * nesting_space;
+				request = start_operand + indent;
 				request_space(output, &current_column, request, 1);
 				p2 = p1;
 				while (*p2 && *p2 != ';') {
@@ -595,6 +684,7 @@ int main(int argc, char *argv[])
 				}
 				while (p2 > p1 && isspace(*(p2 - 1)))
 					p2--;
+                something = 1;
 				fwrite(p1, sizeof(char), p2 - p1, output);
 				current_column += p2 - p1;
 				p1 = p2;
@@ -608,7 +698,7 @@ int main(int argc, char *argv[])
 		if (*p1 == ';') {	/* Comment */
 
 			/*
-			** Try to keep comments horizontally aligned (only works
+			** Try to keep comments aligned vertically (only works
 			** if spaces were used in source file)
 			*/
 			p2 = p1;
@@ -620,12 +710,12 @@ int main(int argc, char *argv[])
 				prev_comment_original_location = p1 - p;
 				if (current_column == 0)
 					request = 0;
-				else if (current_column < start_mnemonic)
-					request = start_mnemonic;
+				else if (current_column < start_mnemonic + indent)
+					request = start_mnemonic + indent;
 				else
-					request = start_comment;
+					request = start_comment + indent;
 				if (current_column == 0 && align_comment == 1)
-					request = start_mnemonic;
+					request = start_mnemonic + indent;
 				prev_comment_final_location = request;
 			}
 			request_space(output, &current_column, request, 0);
@@ -639,7 +729,9 @@ int main(int argc, char *argv[])
 			current_column += p2 - p1;
 			while (*p++) ;
 			continue;
-		}
+        } else if (something == 0) {
+            prev_comment_original_location = 0;
+        }
 		fputc('\n', output);
 		while (*p++) ;
 	}
