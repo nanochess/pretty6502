@@ -1,4 +1,4 @@
-Pretty6502 v0.3 by Oscar Toledo G. http://nanochess.org/
+Pretty6502 v0.4 by Oscar Toledo G. http://nanochess.org/
 
 Executables provided for Mac OS X and Windows.
 
@@ -18,6 +18,7 @@ Arguments:
     -p0       Processor unknown.
     -p1       Processor 6502 + DASM syntax (default)
     -p2       Processor Z80 + tniASM syntax
+    -p3       Processor CP1610 + as1600 syntax (Intellivision)
 
     -m8       Start of mnemonic column (default)
     -o16      Start of operand column (default)
