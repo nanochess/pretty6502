@@ -875,7 +875,9 @@ int main(int argc, char *argv[])
             p2 = p1;
             while (p2 - 1 >= p && isspace(*(p2 - 1)))
                 p2--;
-            if (p2 == p && p1 - p == prev_comment_original_location) {
+            if (processor == P_TMS9900 && p2 == p && *p1 == '*') {
+                request = 0;    /* Cannot be other */
+            } else if (p2 == p && p1 - p == prev_comment_original_location) {
                 request = prev_comment_final_location;
             } else {
                 prev_comment_original_location = p1 - p;
