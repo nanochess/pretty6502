@@ -5,9 +5,10 @@ Executables provided for Mac OS X and Windows.
 Usage:
     pretty6502 [args] input.asm output.asm
 
-DON'T USE SAME OUTPUT FILE AS INPUT, though it's possible,
-you can DAMAGE YOUR SOURCE if Pretty6502 has undiscovered
-bugs.
+It's recommended to not use same output file as input,
+even if possible because there is a chance (0.0000001%)
+that you can DAMAGE YOUR SOURCE if Pretty6502 has
+undiscovered bugs.
 
 Arguments:
     -s0       Code in four columns (default)

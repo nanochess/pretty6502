@@ -336,8 +336,10 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Usage:\n");
 		fprintf(stderr, "    pretty6502 [args] input.asm output.asm\n");
 		fprintf(stderr, "\n");
-		fprintf(stderr, "DON'T USE SAME OUTPUT FILE AS INPUT, though it's possible,\n");
-		fprintf(stderr, "you can DAMAGE YOUR SOURCE if this program has bugs.\n");
+               fprintf(stderr, "It's recommended to not use same output file as input,\n");
+               fprintf(stderr, "even if possible because there is a chance (0.0000001%%)\n");
+               fprintf(stderr, "that you can DAMAGE YOUR SOURCE if Pretty6502 has\n");
+               fprintf(stderr, "undiscovered bugs.\n");
 		fprintf(stderr, "\n");
 		fprintf(stderr, "Arguments:\n");
 		fprintf(stderr, "    -s0       Code in four columns (default)\n");
