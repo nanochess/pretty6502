@@ -17,7 +17,9 @@
  **                             TMS9900 mode.
  ** Revision date: Apr/18/2018. Added support for TMS9900 + xas99 (TI-99/4A), also
  **                             special syntax (comments must be separated by 2
- **                             spaces)
+ **                             spaces).
+ ** Revision date: May/04/2020. Adjusted CP1610 for indenting REPEAT directive.
+ ** Revision date: Apr/12/2021. Added support for 8086 + nasm.
  */
 
 #include <stdio.h>
@@ -25,7 +27,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#define VERSION "v0.5"
+#define VERSION "v0.7"
 
 int tabs;           /* Size of tabs (0 to use spaces) */
 
@@ -35,6 +37,7 @@ enum {
     P_Z80,
     P_CP1610,
     P_TMS9900,
+    P_8086,
     P_UNSUPPORTED,
 } processor;        /* Processor/assembler being used (0-4) */
 
@@ -100,6 +103,26 @@ char *mnemonics_tms9900[] = {
     "sb",   "sbo",  "sbz",  "seto", "sla",  "slc",  "soc",  "socb",
     "sra",  "src",  "srl",  "stcr", "stst", "stwp", "swpb", "szc",
     "szcb", "tb",   "x",    "xop",  "xor",  NULL,
+};
+
+/*
+ ** 8086 mnemonics
+ */
+char *mnemonics_8086[] = {
+    "aaa",  "aad",  "aam",  "aas",  "adc",  "add",  "and",  "call",
+    "cbw",  "clc",  "cld",  "cli",  "cmc",  "cmp",  "cmps", "cmpsb",
+    "cmpsw","cs",   "cwd",  "daa",  "das",  "dec",  "div",  "ds",
+    "es",   "hlt",  "idiv", "imul", "in",   "inc",  "int",  "int3",
+    "into", "iret", "ja",   "jb",   "jbe",  "jcxz", "jg",   "jge",
+    "jl",   "jle",  "jmp",  "jnb",  "jno",  "jns",  "jnz",  "jo",
+    "jpe",  "jpo",  "js",   "jz",   "lahf", "lds",  "lea",  "les",
+    "lock", "lods", "lodsb","lodsw","loop", "loopnz","loopz","mov",
+    "movs", "movsb","movsw","mul",  "neg",  "nop",  "not",  "or",
+    "out",  "pop",  "popf", "push", "pushf","rcl",  "rcr",  "rep",
+    "repnz","repz", "ret",  "retf", "rol",  "ror",  "sahf", "sar",
+    "sbb",  "scas", "scasb","scasw","shl",  "shr",  "ss",   "stc",
+    "std",  "sti",  "stos", "stosb","stosw","sub",  "test", "wait",
+    "xchg", "xlat", "xor",  NULL,
 };
 
 #define DONT_RELOCATE_LABEL	0x01
@@ -198,7 +221,7 @@ struct directive directives_as1600[] = {
     "endi",     LEVEL_OUT,
     "endm",     LEVEL_OUT,
     "endp",     0,
-    "endr",     0,
+    "endr",     LEVEL_OUT,
     "ends",     LEVEL_OUT,
     "err",      0,
     "if",       LEVEL_IN,
@@ -209,7 +232,7 @@ struct directive directives_as1600[] = {
     "proc",     DONT_RELOCATE_LABEL,
     "qequ",     DONT_RELOCATE_LABEL,
     "qset",     DONT_RELOCATE_LABEL,
-    "repeat",   0,
+    "repeat",   LEVEL_IN,
     "res",      0,
     "reserve",  0,
     "return",   0,
@@ -273,6 +296,90 @@ struct directive directives_xas99[] = {
     "titl",     0,
     "unl",      0,
     "xorg",     0,
+    NULL,       0,
+};
+
+/*
+ ** nasm directives
+ */
+struct directive directives_nasm[] = {
+    "%arg",     0,
+    "%assign",  0,
+    "%define",  0,
+    "%defstr",  0,
+    "%deftok",  0,
+    "%depend",  0,
+    "%elif",    LEVEL_MINUS,
+    "%elifdef", LEVEL_MINUS,
+    "%elifn",   LEVEL_MINUS,
+    "%elifndef",LEVEL_MINUS,
+    "%else",    LEVEL_MINUS,
+    "%endif",   LEVEL_OUT,
+    "%endmacro",LEVEL_OUT,
+    "%endrep",  LEVEL_OUT,
+    "%error",   0,
+    "%fatal",   0,
+    "%if",      LEVEL_IN,
+    "%ifdef",   LEVEL_IN,
+    "%ifmacro", LEVEL_IN,
+    "%ifn",     LEVEL_IN,
+    "%ifndef",  LEVEL_IN,
+    "%include", 0,
+    "%line",    0,
+    "%local",   0,
+    "%macro",   LEVEL_IN,
+    "%pathsearch", 0,
+    "%pragma",  0,
+    "%pop",     0,
+    "%push",    0,
+    "%rep",     LEVEL_IN,
+    "%rotate",  0,
+    "%stacksize",0,
+    "%strcat",  0,
+    "%strlen",  0,
+    "%substr",  0,
+    "%unmacro", 0,
+    "%use",     0,
+    "%warning", 0,
+    "__sect__", 0,
+    "absolute", 0,
+    "align",    0,
+    "alignb",   0,
+    "bits",     0,
+    "common",   0,
+    "cpu",      0,
+    "db",       0,
+    "dd",       0,
+    "default",  0,
+    "do",       0,
+    "dq",       0,
+    "dt",       0,
+    "dw",       0,
+    "dy",       0,
+    "dz",       0,
+    "equ",		DONT_RELOCATE_LABEL,
+    "export",   0,
+    "extern",   0,
+    "float",    0,
+    "global",   0,
+    "import",   0,
+    "incbin",   0,
+    "library",  0,
+    "module",   0,
+    "resb",     0,
+    "resd",     0,
+    "reso",     0,
+    "resq",     0,
+    "rest",     0,
+    "resw",     0,
+    "resy",     0,
+    "resz",     0,
+    "sectalign",0,
+    "section",  0,
+    "segment",  0,
+    "use16",    0,
+    "use32",    0,
+    "[warning", 0,
     NULL,       0,
 };
 
@@ -347,6 +454,19 @@ int check_opcode(char *p1, char *p2)
         for (c = 0; mnemonics_tms9900[c] != NULL; c++) {
             length = strlen(mnemonics_tms9900[c]);
             if (length == p2 - p1 && memcmpcase(p1, mnemonics_tms9900[c], p2 - p1) == 0)
+                return -(c + 1);
+        }
+    }
+    if (processor == P_8086) {   /* 8086 + nasm */
+        for (c = 0; directives_nasm[c].directive != NULL; c++) {
+            length = strlen(directives_nasm[c].directive);
+            if (length == p2 - p1 && memcmpcase(p1, directives_nasm[c].directive, p2 - p1) == 0) {
+                return c + 1;
+            }
+        }
+        for (c = 0; mnemonics_8086[c] != NULL; c++) {
+            length = strlen(mnemonics_8086[c]);
+            if (length == p2 - p1 && memcmpcase(p1, mnemonics_8086[c], p2 - p1) == 0)
                 return -(c + 1);
         }
     }
@@ -498,6 +618,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    -p2       Processor Z80 + tniASM syntax\n");
         fprintf(stderr, "    -p3       Processor CP1610 + as1600 syntax (Intellivision(tm))\n");
         fprintf(stderr, "    -p4       Processor TMS9900 + xas99 syntax (TI-99/4A)\n");
+        fprintf(stderr, "    -p5       Processor 8086 + nasm syntax\n");
         fprintf(stderr, "    -m8       Start of mnemonic column (default)\n");
         fprintf(stderr, "    -o16      Start of operand column (default)\n");
         fprintf(stderr, "    -c32      Start of comment column (default)\n");
@@ -649,7 +770,7 @@ int main(int argc, char *argv[])
         }
     }
     if (something && processor == P_TMS9900) {
-        fprintf(stderr, "Warning: ignoring operand column, not possible because assembler syntax in TMS9900 mode\n");
+        fprintf(stderr, "Warning: ignoring operand column, not possible because you selected TMS9900 mode\n");
     }
     
     /*
@@ -759,6 +880,8 @@ int main(int argc, char *argv[])
                         flags = directives_as1600[c - 1].flags;
                     else if (processor == P_TMS9900)
                         flags = directives_xas99[c - 1].flags;
+                    else if (processor == P_8086)
+                        flags = directives_nasm[c - 1].flags;
                     if (flags & DONT_RELOCATE_LABEL)
                         request = start_operand;
                     else
