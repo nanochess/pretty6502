@@ -38,11 +38,31 @@ enum {
     P_CP1610,
     P_TMS9900,
     P_8086,
+    P_65C02,
     P_UNSUPPORTED,
 } processor;        /* Processor/assembler being used (0-4) */
 
 /*
- ** 6502 mnemonics
+ ** 65C02 mnemonics
+ */
+char *mnemonics_65C02[] = {
+    "adc" ,"and" ,"asl" ,"bbr0","bbr1","bbr2","bbr3","bbr4",
+    "bbr5","bbr6","bbr7","bbs0","bbs1","bbs2","bbs3","bbs4",
+    "bbs5","bbs6","bbs7","bcc" ,"bcs" ,"beq" ,"bit" ,"bmi" ,
+    "bne" ,"bpl" ,"bra" ,"brk" ,"bvc" ,"bvs" ,"clc" ,"cld" ,
+    "cli" ,"clv" ,"cmp" ,"cpx" ,"cpy" ,"dea" ,"dec" ,"dex" ,
+    "dey" ,"eor" ,"ina" ,"inc" ,"inx" ,"iny" ,"jmp" ,"jsr" ,
+    "lda" ,"ldx" ,"ldy" ,"lsr" ,"nop" ,"ora" ,"pha" ,"php" ,
+    "phx" ,"phy" ,"pla" ,"plp" ,"plx" ,"ply" ,"rmb0","rmb1",
+    "rmb2","rmb3","rmb4","rmb5","rmb6","rmb7","rol" ,"ror" ,
+    "rti" ,"rts" ,"sbc" ,"sec" ,"sed" ,"sei" ,"smb0","smb1",
+    "smb2","smb3","smb4","smb5","smb6","smb7","sta" ,"stp" ,
+    "stx" ,"sty" ,"stz" ,"tax" ,"tay" ,"trb" ,"tsb" ,"tsx",
+    "txa" ,"txs" ,"tya" ,"wai" , NULL,
+};
+
+/*
+ ** 65C02 mnemonics
  */
 char *mnemonics_6502[] = {
     "adc", "anc", "and", "ane", "arr", "asl", "asr", "bcc",
@@ -177,6 +197,174 @@ struct directive directives_dasm[] = {
     "trace",	0,
     "word",		0,
     NULL,		0,
+};
+
+/*
+ ** CA65 (https://cc65.github.io/doc/ca65.html) directives
+ */
+struct directive directives_ca65[] = {
+    "*",            DONT_RELOCATE_LABEL,
+    ".asize",       0,
+    ".cpu",         0,
+    ".isize",       0,
+    ".paramcount",  0,
+    ".time",        0,
+    ".version",     0,
+    ".addrsize",    0,
+    ".bank",        0,
+    ".bankbyte",    0,
+    ".blank",       0,
+    ".concat",      0,
+    ".const",       0,
+    ".def",         LEVEL_IN,
+    ".definedmacro",0,
+    ".defined",     0,
+    ".hibyte",      0,
+    ".hiword",      0,
+    ".ident",       0,
+    ".ismnem",      0,
+    ".ismnemonic",  0,
+    ".left",        0,
+    ".lobyte",      0,
+    ".loword",      0,
+    ".match",       0,
+    ".max",         0,
+    ".mid",         0,
+    ".min",         0,
+    ".ref",         0,
+    ".referenced",  0,
+    ".right",       0,
+    ".sizeof",      0,
+    ".sprintf",     0,
+    ".strat",       0,
+    ".string",      0,
+    ".strlen",      0,
+    ".tcount",      0,
+    ".xmatch",      0,
+    ".a16",         0,
+    ".a8",          0,
+    ".addr",        0,
+    ".align",       0,
+    ".asciiz",      0,
+    ".assert",      0,
+    ".autoimport",  0,
+    ".bankbytes",   0,
+    ".bss",         0,
+    ".byt",         0,
+    ".byte",        0,
+    ".case",        0,
+    ".charmap",     0,
+    ".code",        0,
+    ".condes",      0,
+    ".constructor", 0,
+    ".data",        0,
+    ".dbyt",        0,
+    ".debuginfo",   0,
+    ".define",      0,
+    ".delmac",      0,
+    ".delmacro",    0,
+    ".destructor",  0,
+    ".dword",       0,
+    ".else",        0,
+    ".elseif",      0,
+    ".end",         LEVEL_OUT,
+    ".endenum",     LEVEL_OUT,
+    ".endif",       LEVEL_OUT,
+    ".endmac",      LEVEL_OUT,
+    ".endmacro",    LEVEL_OUT,
+    ".endproc",     LEVEL_OUT,
+    ".endrep",      LEVEL_OUT,
+    ".endrepeat",   LEVEL_OUT,
+    ".endscope",    LEVEL_OUT,
+    ".endstruct",   LEVEL_OUT,
+    ".endunion",    LEVEL_OUT,
+    ".enum",        0,
+    ".error",       0,
+    ".exitmac",     LEVEL_OUT,
+    ".exitmacro",   LEVEL_OUT,
+    ".export",      0,
+    ".exportzp",    0,
+    ".faraddr",     0,
+    ".fatal",       0,
+    ".feature",     0,
+    ".fileopt",     0,
+    ".fopt",        0,
+    ".forceimport", 0,
+    ".global",      0,
+    ".globalzp",    0,
+    ".hibytes",     0,
+    ".i16",         0,
+    ".i8",          0,
+    ".if",          LEVEL_IN,
+    ".ifblank",     LEVEL_IN,
+    ".ifconst",     LEVEL_IN,
+    ".ifdef",       LEVEL_IN,
+    ".ifnblank",    LEVEL_IN,
+    ".ifndef",      LEVEL_IN,
+    ".ifnref",      LEVEL_IN,
+    ".ifp02",       LEVEL_IN,
+    ".ifp4510",     LEVEL_IN,
+    ".ifp816",      LEVEL_IN,
+    ".ifpc02",      LEVEL_IN,
+    ".ifpdtv",      LEVEL_IN,
+    ".ifpsc02",     LEVEL_IN,
+    ".ifref",       LEVEL_IN,
+    ".import",      0,
+    ".importzp",    0,
+    ".incbin",      0,
+    ".include",     0,
+    ".interruptor", 0,
+    ".linecont",    0,
+    ".list",        0,
+    ".listbytes",   0,
+    ".literal",     0,
+    ".lobytes",     0,
+    ".local",       0,
+    ".localchar",   0,
+    ".macpack",     0,
+    ".mac",         LEVEL_IN,
+    ".macro",       LEVEL_IN,
+    ".org",         0,
+    ".out",         0,
+    ".p02",         0,
+    ".p4510",       0,
+    ".p816",        0,
+    ".pagelen",     0,
+    ".pagelength",  0,
+    ".pc02",        0,
+    ".pdtv",        0,
+    ".popcharmap",  0,
+    ".popcpu",      0,
+    ".popseg",      0,
+    ".proc",        0,
+    ".psc02",       0,
+    ".pushcharmap", 0,
+    ".pushcpu",     0,
+    ".pushseg",     0,
+    ".refto",       0,
+    ".referto",     0,
+    ".reloc",       0,
+    ".repeat",      LEVEL_IN,
+    ".res",         0,
+    ".rodata",      0,
+    ".scope",       0,
+    ".segment",     0,
+    ".set",         0,
+    ".setcpu",      0,
+    ".smart",       0,
+    ".struct",      0,
+    ".tag",         0,
+    ".undef",       0,
+    ".undefine",    0,
+    ".union",       0,
+    ".warning",     0,
+    ".word",        0,
+    ".zeropage",    0,
+    ".macpack",     0,
+    ".tag",         0,
+    ".org",         0,
+    "=",            DONT_RELOCATE_LABEL,
+    NULL,		    0,
 };
 
 /*
@@ -418,6 +606,19 @@ int check_opcode(char *p1, char *p2)
                 return -(c + 1);
         }
     }
+    if (processor == P_65C02) {   /* 65C02 + ca65 */
+        for (c = 0; directives_ca65[c].directive != NULL; c++) {
+            length = strlen(directives_ca65[c].directive);
+            if ((*p1 == '.' && length == p2 - p1 - 1 && memcmpcase(p1 + 1, directives_ca65[c].directive, p2 - p1 - 1) == 0) || (length == p2 - p1 && memcmpcase(p1, directives_ca65[c].directive, p2 - p1) == 0)) {
+                return c + 1;
+            }
+        }
+        for (c = 0; mnemonics_65C02[c] != NULL; c++) {
+            length = strlen(mnemonics_65C02[c]);
+            if (length == p2 - p1 && memcmpcase(p1, mnemonics_65C02[c], p2 - p1) == 0)
+                return -(c + 1);
+        }
+    }
     if (processor == P_Z80) {   /* Z80 + tniASM */
         for (c = 0; directives_tniasm[c].directive != NULL; c++) {
             length = strlen(directives_tniasm[c].directive);
@@ -619,6 +820,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    -p3       Processor CP1610 + as1600 syntax (Intellivision(tm))\n");
         fprintf(stderr, "    -p4       Processor TMS9900 + xas99 syntax (TI-99/4A)\n");
         fprintf(stderr, "    -p5       Processor 8086 + nasm syntax\n");
+        fprintf(stderr, "    -p6       Processor 65c02 + ca65 syntax\n");
         fprintf(stderr, "    -m8       Start of mnemonic column (default)\n");
         fprintf(stderr, "    -o16      Start of operand column (default)\n");
         fprintf(stderr, "    -c32      Start of comment column (default)\n");
@@ -882,6 +1084,8 @@ int main(int argc, char *argv[])
                         flags = directives_xas99[c - 1].flags;
                     else if (processor == P_8086)
                         flags = directives_nasm[c - 1].flags;
+                    else if (processor == P_65C02)
+                        flags = directives_ca65[c - 1].flags;
                     if (flags & DONT_RELOCATE_LABEL)
                         request = start_operand;
                     else
