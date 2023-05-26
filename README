@@ -22,6 +22,7 @@ Arguments:
     -p3       Processor CP1610 + as1600 syntax (Intellivision)
     -p4       Processor TMS9900 + xas99 syntax (TI-99/4A)
     -p5       Processor 8086 + nasm syntax
+    -p6       Processor 65c02 + ca65 syntax
 
     -m8       Start of mnemonic column (default)
     -o16      Start of operand column (default)
