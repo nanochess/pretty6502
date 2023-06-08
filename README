@@ -50,3 +50,30 @@ before mnemonic.
 
 Accepts any assembler file where ; means comment
 [label] mnemonic [operand] ; comment
+
+
+>> ATTENTION <<
+
+Do you would like to learn to program 6502 assembler and
+creating Atari 2600 games? It is possible with my newest book
+Programming Games for Atari 2600.
+
+Now available from Lulu:
+
+  Paperback
+    https://www.lulu.com/shop/oscar-toledo-gutierrez/programming-games-for-atari-2600/paperback/product-pq9dg4.html
+
+  Hardcover
+    https://www.lulu.com/shop/oscar-toledo-gutierrez/programming-games-for-atari-2600/hardcover/product-n8z9r6.html
+
+ eBook
+    https://nanochess.org/store.html
+
+These are some of the example programs documented profusely
+in the book:
+
+  * Game of Ball.
+  * Wall Breaker.
+  * Invaders.
+  * The Lost Kingdom.
+  * Diamond Craze.
