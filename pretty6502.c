@@ -761,6 +761,57 @@ int comment_present(char *start, char *actual, int left_side)
     return 0;
 }
 
+void print_help()
+{
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Pretty6502 " VERSION " by Oscar Toledo G. http://nanochess.org/\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Usage:\n");
+    fprintf(stderr, "    pretty6502 [args] [input.asm] [output.asm]\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "stdin/stdout will be used if no file is provided.\n");
+    fprintf(stderr, "It's recommended to not use same output file as input,\n");
+    fprintf(stderr, "even if possible because there is a chance (0.0000001%%)\n");
+    fprintf(stderr, "that you can DAMAGE YOUR SOURCE if Pretty6502 has\n");
+    fprintf(stderr, "undiscovered bugs.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Arguments:\n");
+    fprintf(stderr, "    -h        Prints help and exits.\n");
+    fprintf(stderr, "    -s0       Code in four columns (default)\n");
+    fprintf(stderr, "              label: mnemonic operand comment\n");
+    fprintf(stderr, "    -s1       Code in three columns\n");
+    fprintf(stderr, "              label: mnemonic+operand comment\n");
+    fprintf(stderr, "    -p0       Processor unknown\n");
+    fprintf(stderr, "    -p1       Processor 6502 + DASM syntax (default)\n");
+    fprintf(stderr, "    -p2       Processor Z80 + tniASM syntax\n");
+    fprintf(stderr, "    -p3       Processor CP1610 + as1600 syntax (Intellivision(tm))\n");
+    fprintf(stderr, "    -p4       Processor TMS9900 + xas99 syntax (TI-99/4A)\n");
+    fprintf(stderr, "    -p5       Processor 8086 + nasm syntax\n");
+    fprintf(stderr, "    -p6       Processor 65c02 + ca65 syntax\n");
+    fprintf(stderr, "    -m8       Start of mnemonic column (default)\n");
+    fprintf(stderr, "    -o16      Start of operand column (default)\n");
+    fprintf(stderr, "    -c32      Start of comment column (default)\n");
+    fprintf(stderr, "    -t8       Use tabs of size 8 to reach column\n");
+    fprintf(stderr, "    -t0       Use spaces to align (default)\n");
+    fprintf(stderr, "    -a0       Align comments to nearest column\n");
+    fprintf(stderr, "    -a1       Comments at line start are aligned\n");
+    fprintf(stderr, "              to mnemonic (default)\n");
+    fprintf(stderr, "    -n4       Nesting spacing (can be any number\n");
+    fprintf(stderr, "              of spaces or multiple of tab size)\n");
+    fprintf(stderr, "    -l        Puts labels in its own line\n");
+    fprintf(stderr, "    -dl       Change directives to lowercase\n");
+    fprintf(stderr, "    -du       Change directives to uppercase\n");
+    fprintf(stderr, "    -ml       Change mnemonics to lowercase\n");
+    fprintf(stderr, "    -mu       Change mnemonics to uppercase\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Assumes all your labels are at start of line and there is space\n");
+    fprintf(stderr, "before mnemonic.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Accepts any assembler file where ; means comment\n");
+    fprintf(stderr, "[label] mnemonic [operand] ; comment\n");
+    exit(1);
+}
+
 /*
  ** Main program
  */
@@ -795,57 +846,6 @@ int main(int argc, char *argv[])
     int comment;
     
     /*
-     ** Show usage if less than 3 arguments (program name counts as one)
-     */
-    if (argc < 3) {
-        fprintf(stderr, "\n");
-        fprintf(stderr, "Pretty6502 " VERSION " by Oscar Toledo G. http://nanochess.org/\n");
-        fprintf(stderr, "\n");
-        fprintf(stderr, "Usage:\n");
-        fprintf(stderr, "    pretty6502 [args] input.asm output.asm\n");
-        fprintf(stderr, "\n");
-        fprintf(stderr, "It's recommended to not use same output file as input,\n");
-        fprintf(stderr, "even if possible because there is a chance (0.0000001%%)\n");
-        fprintf(stderr, "that you can DAMAGE YOUR SOURCE if Pretty6502 has\n");
-        fprintf(stderr, "undiscovered bugs.\n");
-        fprintf(stderr, "\n");
-        fprintf(stderr, "Arguments:\n");
-        fprintf(stderr, "    -s0       Code in four columns (default)\n");
-        fprintf(stderr, "              label: mnemonic operand comment\n");
-        fprintf(stderr, "    -s1       Code in three columns\n");
-        fprintf(stderr, "              label: mnemonic+operand comment\n");
-        fprintf(stderr, "    -p0       Processor unknown\n");
-        fprintf(stderr, "    -p1       Processor 6502 + DASM syntax (default)\n");
-        fprintf(stderr, "    -p2       Processor Z80 + tniASM syntax\n");
-        fprintf(stderr, "    -p3       Processor CP1610 + as1600 syntax (Intellivision(tm))\n");
-        fprintf(stderr, "    -p4       Processor TMS9900 + xas99 syntax (TI-99/4A)\n");
-        fprintf(stderr, "    -p5       Processor 8086 + nasm syntax\n");
-        fprintf(stderr, "    -p6       Processor 65c02 + ca65 syntax\n");
-        fprintf(stderr, "    -m8       Start of mnemonic column (default)\n");
-        fprintf(stderr, "    -o16      Start of operand column (default)\n");
-        fprintf(stderr, "    -c32      Start of comment column (default)\n");
-        fprintf(stderr, "    -t8       Use tabs of size 8 to reach column\n");
-        fprintf(stderr, "    -t0       Use spaces to align (default)\n");
-        fprintf(stderr, "    -a0       Align comments to nearest column\n");
-        fprintf(stderr, "    -a1       Comments at line start are aligned\n");
-        fprintf(stderr, "              to mnemonic (default)\n");
-        fprintf(stderr, "    -n4       Nesting spacing (can be any number\n");
-        fprintf(stderr, "              of spaces or multiple of tab size)\n");
-        fprintf(stderr, "    -l        Puts labels in its own line\n");
-        fprintf(stderr, "    -dl       Change directives to lowercase\n");
-        fprintf(stderr, "    -du       Change directives to uppercase\n");
-        fprintf(stderr, "    -ml       Change mnemonics to lowercase\n");
-        fprintf(stderr, "    -mu       Change mnemonics to uppercase\n");
-        fprintf(stderr, "\n");
-        fprintf(stderr, "Assumes all your labels are at start of line and there is space\n");
-        fprintf(stderr, "before mnemonic.\n");
-        fprintf(stderr, "\n");
-        fprintf(stderr, "Accepts any assembler file where ; means comment\n");
-        fprintf(stderr, "[label] mnemonic [operand] ; comment\n");
-        exit(1);
-    }
-    
-    /*
      ** Default settings
      */
     style = 0;
@@ -865,12 +865,11 @@ int main(int argc, char *argv[])
      */
     something = 0;
     c = 1;
-    while (c < argc - 2) {
-        if (argv[c][0] != '-') {
-            fprintf(stderr, "Bad argument\n");
-            exit(1);
-        }
+    while (c < argc && argv[c][0] == '-') {
         switch (tolower(argv[c][1])) {
+            case 'h':
+                print_help();
+                break;
             case 's':	/* Style */
                 style = atoi(&argv[c][2]);
                 if (style != 0 && style != 1) {
@@ -978,29 +977,48 @@ int main(int argc, char *argv[])
     /*
      ** Open input file, measure it and read it into buffer
      */
-    input = fopen(argv[c], "rb");
-    if (input == NULL) {
-        fprintf(stderr, "Unable to open input file: %s\n", argv[c]);
-        exit(1);
-    }
-    fprintf(stderr, "Processing %s...\n", argv[c]);
-    fseek(input, 0, SEEK_END);
-    allocation = ftell(input);
-    data = malloc(allocation + sizeof(char));
-    if (data == NULL) {
-        fprintf(stderr, "Unable to allocate memory\n");
+    if(c < argc) {
+        input = fopen(argv[c], "rb");
+        if (input == NULL) {
+            fprintf(stderr, "Unable to open input file: %s\n", argv[c]);
+            exit(1);
+        }
+        fprintf(stderr, "Processing %s...\n", argv[c]);
+        fseek(input, 0, SEEK_END);
+        allocation = ftell(input);
+        data = malloc(allocation + sizeof(char));
+        if (data == NULL) {
+            fprintf(stderr, "Unable to allocate memory\n");
+            fclose(input);
+            exit(1);
+        }
+        fseek(input, 0, SEEK_SET);
+        if (fread(data, sizeof(char), allocation, input) != allocation) {
+            fprintf(stderr, "Something went wrong reading the input file\n");
+            fclose(input);
+            free(data);
+            exit(1);
+        }
         fclose(input);
-        exit(1);
     }
-    fseek(input, 0, SEEK_SET);
-    if (fread(data, sizeof(char), allocation, input) != allocation) {
-        fprintf(stderr, "Something went wrong reading the input file\n");
-        fclose(input);
-        free(data);
-        exit(1);
+    else { // Read data from stdin
+        fprintf(stderr, "Processing stdin...\n");
+        int buffer_len = 512;
+        char c;
+        allocation = 0;
+        data = malloc(buffer_len);
+        while(EOF != (c = fgetc(stdin)))
+        {
+            data[allocation] = c;
+            ++allocation;
+            if(allocation >= buffer_len)
+            {
+                buffer_len += 512;
+                data = realloc(data, buffer_len);
+            }
+        }
     }
-    fclose(input);
-    
+   
     /*
      ** Ease processing of input file
      */
@@ -1033,10 +1051,14 @@ int main(int argc, char *argv[])
      ** Now generate output file
      */
     c++;
-    output = fopen(argv[c], "w");
-    if (output == NULL) {
-        fprintf(stderr, "Unable to open output file: %s\n", argv[c]);
-        exit(1);
+    if(c < argc) {
+        output = fopen(argv[c], "w");
+        if (output == NULL) {
+            fprintf(stderr, "Unable to open output file: %s\n", argv[c]);
+            exit(1);
+        }
+    } else {
+        output = stdout;
     }
     prev_comment_original_location = 0;
     prev_comment_final_location = 0;
