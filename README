@@ -24,19 +24,20 @@ Arguments:
     -p7       Processor 6502 + gasm80 syntax 
     -p8       Processor Z80 + gasm80 syntax
 
+    -n4       Nesting spacing (can be any number
+              of spaces or multiple of tab size)
+
     -m8       Start of mnemonic column (default)
     -o16      Start of operand column (default)
     -c32      Start of comment column (default)
 
-    -t8       Use tabs of size 8 to reach column
     -t0       Use spaces to align (default)
+    -t8       Use tabs to reach column (size 8)
+              Options -m, -o, -c, and -n must be multiples of this value.
 
     -a0       Align comments to nearest column
     -a1       Comments at line start are aligned
               to mnemonic (default)
-
-    -n4       Nesting spacing (can be any number
-              of spaces or multiple of tab size)
 
     -l        Put labels in its own line
 
