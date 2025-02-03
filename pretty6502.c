@@ -3,7 +3,7 @@
  **
  ** by Oscar Toledo G.
  **
- ** © Copyright 2017-2018 Oscar Toledo G.
+ ** © Copyright 2017-2025 Oscar Toledo G.
  **
  ** Creation date: Nov/03/2017.
  ** Revision date: Nov/06/2017. Processor selection. Indents nested IF/ENDIF.
@@ -20,6 +20,7 @@
  **                             spaces).
  ** Revision date: May/04/2020. Adjusted CP1610 for indenting REPEAT directive.
  ** Revision date: Apr/12/2021. Added support for 8086 + nasm.
+ ** Revision date: Feb/03/2025. Added support for 6502+Z80 / gasm80.
  */
 
 #include <stdio.h>
@@ -27,7 +28,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#define VERSION "v0.7"
+#define VERSION "v0.8"
 
 int tabs;           /* Size of tabs (0 to use spaces) */
 
@@ -39,6 +40,8 @@ enum {
     P_TMS9900,
     P_8086,
     P_65C02,
+    P_6502_GASM80,
+    P_Z80_GASM80,
     P_UNSUPPORTED,
 } processor;        /* Processor/assembler being used (0-4) */
 
@@ -572,6 +575,29 @@ struct directive directives_nasm[] = {
 };
 
 /*
+ ** gasm80 directives
+ */
+struct directive directives_gasm80[] = {
+    "align",    0,
+    "cpu",      0,
+    "db",       0,
+    "dw",       0,
+    "else",     LEVEL_MINUS,
+    "endif",    LEVEL_OUT,
+    "equ",      DONT_RELOCATE_LABEL,
+    "forg",     0,
+    "if",       LEVEL_IN,
+    "ifdef",    LEVEL_IN,
+    "ifndef",   LEVEL_IN,
+    "incbin",   0,
+    "include",  0,
+    "org",      0,
+    "rb",       0,
+    "times",    0,
+    NULL,       0,
+};
+
+/*
  ** Comparison without case
  */
 int memcmpcase(char *p1, char *p2, int size)
@@ -668,6 +694,32 @@ int check_opcode(char *p1, char *p2)
         for (c = 0; mnemonics_8086[c] != NULL; c++) {
             length = strlen(mnemonics_8086[c]);
             if (length == p2 - p1 && memcmpcase(p1, mnemonics_8086[c], p2 - p1) == 0)
+                return -(c + 1);
+        }
+    }
+    if (processor == P_6502_GASM80) {   /* 6502 + GASM80 */
+        for (c = 0; directives_gasm80[c].directive != NULL; c++) {
+            length = strlen(directives_gasm80[c].directive);
+            if (length == p2 - p1 && memcmpcase(p1, directives_gasm80[c].directive, p2 - p1) == 0) {
+                return c + 1;
+            }
+        }
+        for (c = 0; mnemonics_6502[c] != NULL; c++) {
+            length = strlen(mnemonics_6502[c]);
+            if (length == p2 - p1 && memcmpcase(p1, mnemonics_6502[c], p2 - p1) == 0)
+                return -(c + 1);
+        }
+    }
+    if (processor == P_Z80_GASM80) {   /* Z80 + GASM80 */
+        for (c = 0; directives_gasm80[c].directive != NULL; c++) {
+            length = strlen(directives_gasm80[c].directive);
+            if (length == p2 - p1 && memcmpcase(p1, directives_gasm80[c].directive, p2 - p1) == 0) {
+                return c + 1;
+            }
+        }
+        for (c = 0; mnemonics_z80[c] != NULL; c++) {
+            length = strlen(mnemonics_z80[c]);
+            if (length == p2 - p1 && memcmpcase(p1, mnemonics_z80[c], p2 - p1) == 0)
                 return -(c + 1);
         }
     }
@@ -821,16 +873,19 @@ int main(int argc, char *argv[])
         fprintf(stderr, "    -p4       Processor TMS9900 + xas99 syntax (TI-99/4A)\n");
         fprintf(stderr, "    -p5       Processor 8086 + nasm syntax\n");
         fprintf(stderr, "    -p6       Processor 65c02 + ca65 syntax\n");
+        fprintf(stderr, "    -p7       Processor 6502 + gasm80 syntax\n");
+        fprintf(stderr, "    -p8       Processor Z80 + gasm80 syntax\n");
+        fprintf(stderr, "    -n4       Nesting spacing (can be any number\n");
+        fprintf(stderr, "              of spaces or multiple of tab size)\n");
         fprintf(stderr, "    -m8       Start of mnemonic column (default)\n");
         fprintf(stderr, "    -o16      Start of operand column (default)\n");
         fprintf(stderr, "    -c32      Start of comment column (default)\n");
-        fprintf(stderr, "    -t8       Use tabs of size 8 to reach column\n");
         fprintf(stderr, "    -t0       Use spaces to align (default)\n");
+        fprintf(stderr, "    -t8       Use tabs to reach column (size 8)\n");
+        fprintf(stderr, "              Options -m, -o, -c, and -n must be multiples of this value.\n");
         fprintf(stderr, "    -a0       Align comments to nearest column\n");
         fprintf(stderr, "    -a1       Comments at line start are aligned\n");
         fprintf(stderr, "              to mnemonic (default)\n");
-        fprintf(stderr, "    -n4       Nesting spacing (can be any number\n");
-        fprintf(stderr, "              of spaces or multiple of tab size)\n");
         fprintf(stderr, "    -l        Puts labels in its own line\n");
         fprintf(stderr, "    -dl       Change directives to lowercase\n");
         fprintf(stderr, "    -du       Change directives to uppercase\n");
@@ -955,19 +1010,19 @@ int main(int argc, char *argv[])
     }
     if (tabs > 0) {
         if (start_mnemonic % tabs) {
-            fprintf(stderr, "Operand error: -m%d isn't a multiple of %d\n", start_mnemonic, tabs);
+            fprintf(stderr, "Operand error: -m%d isn't a multiple of -t%d\n", start_mnemonic, tabs);
             exit(1);
         }
         if (start_operand % tabs) {
-            fprintf(stderr, "Operand error: -m%d isn't a multiple of %d\n", start_operand, tabs);
+            fprintf(stderr, "Operand error: -m%d isn't a multiple of -t%d\n", start_operand, tabs);
             exit(1);
         }
         if (start_comment % tabs) {
-            fprintf(stderr, "Operand error: -m%d isn't a multiple of %d\n", start_comment, tabs);
+            fprintf(stderr, "Operand error: -m%d isn't a multiple of -t%d\n", start_comment, tabs);
             exit(1);
         }
         if (nesting_space % tabs) {
-            fprintf(stderr, "Operand error: -n%d isn't a multiple of %d\n", nesting_space, tabs);
+            fprintf(stderr, "Operand error: -n%d isn't a multiple of -t%d\n", nesting_space, tabs);
             exit(1);
         }
     }
@@ -1086,6 +1141,10 @@ int main(int argc, char *argv[])
                         flags = directives_nasm[c - 1].flags;
                     else if (processor == P_65C02)
                         flags = directives_ca65[c - 1].flags;
+                    else if (processor == P_6502_GASM80)
+                        flags = directives_gasm80[c - 1].flags;
+                    else if (processor == P_Z80_GASM80)
+                        flags = directives_gasm80[c - 1].flags;
                     if (flags & DONT_RELOCATE_LABEL)
                         request = start_operand;
                     else
