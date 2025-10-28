@@ -28,7 +28,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#define VERSION "v0.8"
+#define VERSION "v0.9"
 
 int tabs;           /* Size of tabs (0 to use spaces) */
 
@@ -1122,13 +1122,13 @@ int main(int argc, char *argv[])
             p2 = p1;
             while (*p2 && !isspace(*p2) && !comment_present(p, p2, 0))
                 p2++;
-            if (processor != P_UNK) {
+            if (processor != P_UNK) {   /* The processor is defined */
                 c = check_opcode(p1, p2);
-                if (c == 0) {
+                if (c == 0) {   /* No match */
                     request = start_mnemonic;
-                } else if (c < 0) {
+                } else if (c < 0) { /* Mnemonic */
                     request = start_mnemonic;
-                } else {
+                } else {    /* Directive */
                     if (processor == P_6502)
                         flags = directives_dasm[c - 1].flags;
                     else if (processor == P_Z80)
@@ -1154,7 +1154,7 @@ int main(int argc, char *argv[])
                 request = start_mnemonic;
                 c = 0;
             }
-            if (c <= 0) {
+            if (c <= 0) {   /* Mnemonic or unknown */
                 if (mnemonics_case == 1) {
                     p3 = p1;
                     while (p3 < p2) {
@@ -1168,7 +1168,7 @@ int main(int argc, char *argv[])
                         p3++;
                     }
                 }
-            } else {
+            } else {    /* Directive */
                 if (directives_case == 1) {
                     p3 = p1;
                     while (p3 < p2) {
@@ -1191,13 +1191,13 @@ int main(int argc, char *argv[])
                 fputc('\n', output);
                 current_column = 0;
             }
-            if (flags & LEVEL_OUT) {
+            if (flags & LEVEL_OUT) {    /* Directive, exits nested level */
                 if (current_level > 0) {
                     current_level--;
                     indent -= nesting_space;
                 }
             }
-            if (flags & LEVEL_MINUS) {
+            if (flags & LEVEL_MINUS) {  /* Directive, enters nested level */
                 if (indent >= nesting_space)
                     indent -= nesting_space;
                 else
@@ -1221,14 +1221,20 @@ int main(int argc, char *argv[])
                 while (*p2 && !comment_present(p, p2, 0)) {
                     if (*p2 == '"') {
                         p2++;
-                        while (*p2 && *p2 != '"')
+                        while (*p2 && *p2 != '"') {
+                            if (*p2 == '\\' && *(p2 + 1) == '"')
+                                p2++;
                             p2++;
+                        }
                         p2++;
                     } else if (*p2 == '\'') {
                         p2++;
                         if (p2 - p1 < 6 || memcmp(p2 - 6, "AF,AF'", 6) != 0) {
-                            while (*p2 && *p2 != '\'')
+                            while (*p2 && *p2 != '\'') {
+                                if (*p2 == '\\' && *(p2 + 1) == '\'')
+                                    p2++;
                                 p2++;
+                            }
                             p2++;
                         }
                     } else {
@@ -1284,10 +1290,7 @@ int main(int argc, char *argv[])
             while (p2 > p1 && isspace(*(p2 - 1)))
                 p2--;
             fwrite(p1, sizeof(char), p2 - p1, output);
-            fputc('\n', output);
             current_column += p2 - p1;
-            while (*p++) ;
-            continue;
         } else if (something == 0) {
             prev_comment_original_location = 0;
             prev_comment_final_location = 0;
